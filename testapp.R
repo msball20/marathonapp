@@ -9,7 +9,7 @@ library(DT)
 ';l'
 
 # Load my dataset
-marathon_data <- read_csv("/Users/callieballaine/Desktop/syeseminar/world_marathon_majors.csv")
+marathon_data <- read_csv("world_marathon_majors.csv")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
