@@ -50,11 +50,11 @@ ui <- fluidPage(
     # This is for my second tab 
     tabPanel("Country-Gender",
              selectizeInput("country", "Country", choices = c(marathon_data$country, "NONE"), multiple = TRUE),
-             selectizeInput("marathon", "Race Location", choices = c(marathon_data$marathon, "NONE"), multiple = TRUE),
-             selectInput("gender", "Gender", choices = c( "Male", "Female", "NONE")),
+             selectizeInput("marathon2", "Race Location", choices = c(marathon_data$marathon, "NONE"), multiple = TRUE),
+             selectizeInput("gender", "Gender", choices = c( "Male", "Female", "NONE")),
              actionButton("submit2", "Submit"),
-             tableOutput("printtable"),
              plotOutput("dot_plot")
+             
              )
   )
     )
@@ -213,367 +213,274 @@ server <- function(input, output) {
   # This is code for my second tab 
  observeEvent(input$submit2, 
               {
-                output$printtable = renderTable(marathon_data)
-    if (input$gender == "NONE") {           
+   
+   if (input$gender == "NONE") {           
       # Check if only country is inputted 
-      if (input$country != "NONE" && length(input$country) == 1 && input$marathon == "NONE") {
+      if (!("NONE"%in% input$country) && input$marathon2 == "NONE") {
+        
        # Filter data based on the country that was selected
          filtered_data <- marathon_data |>
           filter(country == input$country)
-        # output$printtable = renderTable(filtered_data)
+       
+         # Group data by year and find top runner for each year
+         top_runners_each_year <- filtered_data |>
+           group_by(year) |>
+           ungroup()
+        
+         # Create dot plot of the top runners from each year
+         output$dot_plot <- renderPlot({
+            ggplot(top_runners_each_year, aes(x = year, y = time)) +
+              geom_point() +
+             facet_wrap(~country) +
+              labs(title = paste("Top Runners from Each Year (Faceted by Country)"),
+                   x = "Year",
+                   y = "Finish Time") +
+              theme_minimal()
+         })
+      }
+   
+      
+                  
+       # Check if only race location is inputted
+       if (!("NONE" %in% input$marathon2) && input$country == "NONE") {
+         
+         # Filter dataset based on selected race location
+         filtered_data <- marathon_data |>
+           filter(marathon == input$marathon2)
+        
+         # Group data by year and find top runner for each year
+         top_runners_each_year <- filtered_data |>
+           group_by(year) |>
+           ungroup()
+         
+         # Create line plot of the top runners from each year
+         output$dot_plot <- renderPlot({
+           ggplot(top_runners_each_year, aes(x = year, y = time)) +
+             geom_line(size = 1.5) +
+              facet_wrap(~marathon) +
+             labs(title = paste("Top Runners from", input$marathon2, "from Each Year"),
+                  x = "Year",
+                  y = "Finish Time") +
+             theme_minimal()
+        })
+         
+       }
+   }
+       # Check if only gender was inputted 
+       if (!("NONE" %in% input$gender) && input$country == "NONE" && input$marathon2 == "NONE") {
+         
+         # Filter dataset based on selected gender
+         filtered_data <- marathon_data |>
+           filter(gender == input$gender)
          
          # Group data by year and find top runner for each year
          top_runners_each_year <- filtered_data |>
            group_by(year) |>
-           slice_min(order_by = time, n = 1) |>
            ungroup()
-        # output$printtable = renderTable(top_runners_each_year)
          
-         # Create dot plot of the top runners from each year
+         
+         # Create line plot of the top times for the specified gender over the years
          output$dot_plot <- renderPlot({
-           hist(rnorm(100))
-           # ggplot(top_runners_each_year, aes(x = year, y = time)) +
-           #   geom_point() +
-           #   labs(title = paste("Top Runners from", input$country, "from Each Year"),
-           #        x = "Year",
-           #        y = "Finish Time") +
-           #   theme_minimal()
-         })
+           ggplot(top_runners_each_year, aes(x = year, y = time)) +
+             geom_line(size = 1.5) +
+             labs(title = paste("Top Times for", input$gender, "Over the Years"),
+                  x = "Year",
+                  y = "Finish Time") +
+             theme_minimal()
+        })
+       }
+                
+       # Check if only country and gender is inputted 
+       if (!("NONE" %in% input$gender) && !("NONE" %in% input$country) && input$marathon2 == "NONE") {
+      
+         # Filter dataset based on selected country and gender
+         filtered_data <- marathon_data %>%
+           filter(country %in% input$country, gender == input$gender)
          
-      }
-    
+
+          # Create a dot plot with facet_wrap by the selected countries and gender
+          output$dot_plot <- renderPlot({
+            ggplot(filtered_data, aes(x = year, y = time, color = marathon)) +
+              geom_point() +
+              labs(title = paste("Top Runners from Each Year by Country (", input$gender, ")"),
+                   x = "Year",
+                   y = "Finish Time",
+                   color = "Marathon") +
+              facet_wrap(~country) +
+              theme_minimal()
+          })
+        }
+      
+                  
+      # Check if only gender and race are inputted
+      if (!("NONE" %in% input$gender) && input$country == "NONE" && !("NONE" %in% input$marathon2)) {
+
+          # Filter dataset based on user input of gender and race
+          filtered_data <- marathon_data |>
+            filter(gender == input$gender, marathon == input$marathon2)
+
+          # Create line plot of the specified gender running the specified race
+          output$dot_plot <- renderPlot({
+            ggplot(filtered_data, aes(x = year, y = time)) +
+              geom_line() +
+              labs(title = paste("Top Times for", input$gender, "in", input$marathon2, "Over the Years"),
+                   x = "Year",
+                   y = "Finish Time") +
+              theme_minimal() + 
+              facet_wrap(~marathon)
+          })
+        }
         
-    #    # Check if it is more than one country 
-    #   else if (input$country != "NONE" && length(input$country) > 1) {
-    #     
-    #     # Filter dataset based on selected countries
-    #     filtered_data <- marathon_data |>
-    #       filter(country %in% input$country, gender == input$gender)
-    #     
-    #     # Group data by year and country
-    #     top_runners_each_year <- filtered_data |>
-    #       group_by(year, country) |>
-    #       slice_min(order_by = time, n = 1) |>
-    #       ungroup()  
-    #  
-    #     
-    #     # Create dot plot of the top runners from each year, faceted by country
-    #     output$dot_plot <- renderPlot({
-    #       ggplot(top_runners_each_year, aes(x = year, y = time)) +
-    #         geom_point() +
-    #         facet_wrap(~country) +
-    #         labs(title = paste("Top Runners from Each Year (Faceted by Country)"),
-    #              x = "Year",
-    #              y = "Finish Time") +
-    #         theme_minimal()
-    #     })
-    #   }
-    # }
-    #              
-    #   # Check if only race location is inputted
-    #   if (input$marathon != "NONE" && length(input$marathon) == 1 && input$country == "NONE") {
-    #     
-    #     # Filter dataset based on selected race location
-    #     filtered_data <- marathon_data |>
-    #       filter(marathon == input$marathon, gender == input$gender)
-    #     
-    #     # Group data by year and find top runner for each year
-    #     top_runners_each_year <- filtered_data |>
-    #       group_by(year) |>
-    #       slice_min(order_by = time, n = 1) |>
-    #       ungroup()
-    #     
-    #     # Create line plot of the top runners from each year
-    #     output$dot_plot <- renderPlot({
-    #       ggplot(top_runners_each_year, aes(x = year, y = time)) +
-    #         geom_line(size = 1.5) +
-    #         labs(title = paste("Top Runners from", input$marathon, "from Each Year"),
-    #              x = "Year",
-    #              y = "Finish Time") +
-    #         theme_minimal()
-    #     })
-    #     
-    #   } 
-    #   # Check if there is more than one race location 
-    #   else if (input$races != "NONE" && length(input$races) > 1) {
-    #     
-    #     # Filter dataset based on selected race locations
-    #     filtered_data <- marathon_data |>
-    #       filter(marathon %in% input$marathon, gender == input$gender)
-    #  
-    #    
-    #     # Group data by year and race location
-    #     top_runners_each_year <- filtered_data |>
-    #       group_by(year, marathon) |>
-    #       slice_min(order_by = time, n = 1) |>
-    #       ungroup()
-    #     
-    #     # Create line plot of the top runners from each year, faceted by race location
-    #     output$dot_plot <- renderPlot({
-    #       ggplot(top_runners_each_year, aes(x = year, y = time)) +
-    #         geom_line(size = 1.5) +
-    #         facet_wrap(~marathon) +
-    #         labs(title = "Top Runners from Each Year (Faceted by Race Location)",
-    #              x = "Year",
-    #              y = "Finish Time") +
-    #         theme_minimal()
-    #       
-    #     })
-    #   }
-    #   
-    #   # Check if only gender was inputted 
-    #   if (input$gender != "NONE" && input$country == "NONE" && input$race == "NONE") {
-    #     
-    #     # Filter dataset based on selected gender
-    #     filtered_data <- marathon_data |>
-    #       filter(gender == input$gender)
-    #     
-    #     # Group data by year and find top runner for each year
-    #     top_runners_each_year <- filtered_data |>
-    #       group_by(year) |>
-    #       slice_min(order_by = time, n = 1) |>
-    #       ungroup()
-    #     
-    #     
-    #     # Create line plot of the top times for the specified gender over the years
-    #     output$dot_plot <- renderPlot({
-    #       ggplot(top_runners_each_year, aes(x = year, y = time)) +
-    #         geom_line(size = 1.5) +
-    #         labs(title = paste("Top Times for", input$gender, "Over the Years"),
-    #              x = "Year",
-    #              y = "Finish Time") +
-    #         theme_minimal()
-    #     })
-    #   }
-    #              
-    #   # Check if only country and gender is inputted 
-    #   if (input$gender != "NONE" && input$country != "NONE" && input$race == "NONE") {
-    #     
-    #     # Filter dataset based on selected country and gender
-    #     filtered_data <- marathon_data %>%
-    #       filter(country %in% input$country, gender == input$gender)
-    #     
-    #     
-    #   # Check if there is only one country 
-    #     if (length(input$country) == 1) {
-    #       # Create a dot plot for the single selected country and gender
-    #       output$dot_plot <- renderPlot({
-    #         ggplot(filtered_data, aes(x = year, y = time, color = marathon)) +
-    #           geom_point() +
-    #           labs(title = paste("Top Runners from", input$country, "(", input$gender, ") from Each Year"),
-    #                x = "Year",
-    #                y = "Finish Time",
-    #                color = "Marathon") +
-    #           theme_minimal()
-    #       })
-    #     }
-    #     
-    #   # Check is there is more than one country 
-    #     else {
-    #       # Create a dot plot with facet_wrap by the selected countries and gender
-    #       output$dot_plot <- renderPlot({
-    #         ggplot(filtered_data, aes(x = year, y = time, color = marathon)) +
-    #           geom_point() +
-    #           labs(title = paste("Top Runners from Each Year by Country (", input$gender, ")"),
-    #                x = "Year",
-    #                y = "Finish Time",
-    #                color = "Marathon") +
-    #           facet_wrap(~country) +
-    #           theme_minimal()
-    #       })
-    #     }
-    #   }
-    #              
-    #              
-    #   # Check if only gender and race are inputted 
-    #   if (input$gender != "NONE" && input$country == "NONE" && input$marathon != "NONE") {
-    #     
-    #   # Check if there is one race 
-    #     if (length(input$marathon) == 1) {
-    #       # Filter dataset based on user input of gender and race
-    #       filtered_data <- marathon_data |>
-    #         filter(gender == input$gender, marathon == input$marathon)
-    #       
-    #       # Create line plot of the specified gender running the specified race
-    #       output$dot_plot <- renderPlot({
-    #         ggplot(filtered_data, aes(x = year, y = time)) +
-    #           geom_line() +
-    #           labs(title = paste("Top Times for", input$gender, "in", input$marathon, "Over the Years"),
-    #                x = "Year",
-    #                y = "Finish Time") +
-    #           theme_minimal()
-    #       })
-    #     } 
-    #     
-    #   # Check if there is more than one race inputted
-    #     else {
-    #       # Filter dataset based on user input of gender and races
-    #       filtered_data <- marathon_data |>
-    #         filter(gender == input$gender, marathon %in% input$marathon)
-    #       
-    #       # Create line plot of the specified gender running the specified races
-    #       output$dot_plot <- renderPlot({
-    #         ggplot(filtered_data, aes(x = year, y = time, color = marathon)) +
-    #           geom_line() +
-    #           labs(title = paste("Top Times for", input$gender, "in Selected Races Over the Years"),
-    #                x = "Year",
-    #                y = "Finish Time",
-    #                color = "Race Location") +
-    #           theme_minimal() +
-    #           facet_wrap(~marathon)
-    #       })
-    #     }
-    #   }
-    #              
-    #              
-    #   # Check if country and race were inputted     
-    #   if (input$gender == "NONE" && input$country != "NONE" && input$marathon != "NONE") {
-    #   # Check if both only had one input 
-    #     if (length(input$country) == 1 && length(input$marathon) == 1) {
-    #       
-    #       # Filter dataset based on user input of country and race
-    #       filtered_data <- marathon_data |>
-    #         filter(country == input$country, marathon == input$marathon)
-    #       
-    #       # Create dot plot of the winners from that specific country and specific race
-    #       output$dot_plot <- renderPlot({
-    #         ggplot(filtered_data, aes(x = year, y = time)) +
-    #           geom_point() +
-    #           labs(title = paste("Winners from", input$country, "in", input$marathon),
-    #                x = "Year",
-    #                y = "Finish Time") +
-    #           theme_minimal()
-    #       })
-    #     }
-    #     
-    #   # Check if only one of them is 1 - whatever is 1 then facet_wrap using the other 
-    #     else if (length(input$country) == 1 || length(input$marathon) == 1) {
-    #       if (length(input$country) == 1) {
-    #         # Facet_wrap by race
-    #         filtered_data <- marathon_data |>
-    #           filter(country == input$country, marathon %in% input$marathon)
-    #         
-    #         output$dot_plot <- renderPlot({
-    #           ggplot(filtered_data, aes(x = year, y = time)) +
-    #             geom_point() +
-    #             labs(title = paste("Winners from", input$country, "in Selected Races"),
-    #                  x = "Year",
-    #                  y = "Finish Time") +
-    #             theme_minimal() +
-    #             facet_wrap(~marathon)
-    #         })
-    #       }
-    #     }
-    #       else {
-    #         # Facet_wrap by country
-    #         filtered_data <- marathon_data |>
-    #           filter(country %in% input$country, marathon == input$marathon)
-    #         
-    #         output$dot_plot <- renderPlot({
-    #           ggplot(filtered_data, aes(x = year, y = time)) +
-    #             geom_point() +
-    #             labs(title = paste("Winners from Selected Countries in", input$marathon),
-    #                  x = "Year",
-    #                  y = "Finish Time") +
-    #             theme_minimal() +
-    #             facet_wrap(~country)
-    #         })
-    #       }
-    #     } 
-    #     
-    #   # Check if both are great than one -- ask which one the user wants to facet wrap with 
-    #     else if (length(input$country) > 1 && length(input$marathon) > 1) {
-    #       showModal(modalDialog(
-    #         title = "Facet wrap selection",
-    #         actionButton("facet_by_country", "Facet by Country"),
-    #         actionButton("facet_by_race", "Facet by Race")
-    #       ))
-    #       
-    #       observeEvent(input$facet_by_country, {
-    #         removeModal()
-    #         # Facet_wrap by country was selected
-    #         filtered_data <- marathon_data |>
-    #           filter(country %in% input$country, marathon %in% input$marathon)
-    #         
-    #         output$dot_plot <- renderPlot({
-    #           ggplot(filtered_data, aes(x = year, y = time)) +
-    #             geom_point() +
-    #             labs(title = paste("Winners from Selected Countries and Races"),
-    #                  x = "Year",
-    #                  y = "Finish Time") +
-    #             theme_minimal() +
-    #             facet_wrap(~country)
-    #         })
-    #       })
-    #       
-    #       observeEvent(input$facet_by_race, {
-    #         removeModal()
-    #         # Facet_wrap by race was selected 
-    #         filtered_data <- marathon_data |>
-    #           filter(country %in% input$country, marathon %in% input$marathon)
-    #         
-    #         output$dot_plot <- renderPlot({
-    #           ggplot(filtered_data, aes(x = year, y = time)) +
-    #             geom_point() +
-    #             labs(title = paste("Winners from Selected Countries and Races"),
-    #                  x = "Year",
-    #                  y = "Finish Time") +
-    #             theme_minimal() +
-    #             facet_wrap(~marathon)
-    #         })
-    #       })
-    #     }
-    #   
-    #              
-    #   # Check if country, race, and location are inputted
-    #   if (input$country != "NONE" && input$marathon != "NONE" && input$gender != "NONE") {
-    #   # Ask what the user wants to facet_wrap with            
-    #     # Ask the user what they want to facet_wrap with
-    #     showModal(modalDialog(
-    #       title = "Facet wrap selection",
-    #       selectInput("facet_selection", "Facet by:", choices = c("Country", "Race")),
-    #       footer = actionButton("facet_submit", "Submit")
-    #     ))
-    #     
-    #     observeEvent(input$facet_submit, {
-    #       removeModal()
-    #       if (input$facet_selection == "Country") {
-    #         # Facet by country
-    #         filtered_data <- marathon_data %>%
-    #           filter(country == input$country, marathon == input$marathon, gender == input$gender)
-    #         
-    #         output$dot_plot <- renderPlot({
-    #           ggplot(filtered_data, aes(x = year, y = time, color = marathon)) +
-    #             geom_point() +
-    #             labs(title = paste("Winners from", input$country, "in", input$marathon, "by", input$gender),
-    #                  x = "Year",
-    #                  y = "Finish Time",
-    #                  color = "Race Location") +
-    #             theme_minimal() +
-    #             facet_wrap(~country)
-    #         })
-    #       }
-    #       
-    #       else if (input$facet_selection == "Race") {
-    #         # Facet by race
-    #         filtered_data <- marathon_data %>%
-    #           filter(country == input$country, marathon == input$marathon, gender == input$gender)
-    #         
-    #         output$dot_plot <- renderPlot({
-    #           ggplot(filtered_data, aes(x = year, y = time, color = country)) +
-    #             geom_point() +
-    #             labs(title = paste("Winners from", input$country, "in", input$marathon, "by", input$gender),
-    #                  x = "Year",
-    #                  y = "Finish Time",
-    #                  color = "Country") +
-    #             theme_minimal() +
-    #             facet_wrap(~marathon)
-    #         })
-    #       }
-    #     })
-    #   }
+                  
                  
-               }
+      # Check if country and race were inputted
+      if (input$gender == "NONE" && !("NONE" %in% input$country) && !("NONE" %in% input$marathon2)) {
+      # Check if both only had one input
+        if (length(input$country) == 1 && length(input$marathon2) == 1) {
+
+          # Filter dataset based on user input of country and race
+          filtered_data <- marathon_data |>
+            filter(country == input$country, marathon == input$marathon2)
+
+          # Create dot plot of the winners from that specific country and specific race
+          output$dot_plot <- renderPlot({
+            ggplot(filtered_data, aes(x = year, y = time)) +
+              geom_point() +
+              labs(title = paste("Winners from", input$country, "in", input$marathon2),
+                   x = "Year",
+                   y = "Finish Time") +
+              theme_minimal()
+          })
+        }
+
+      # Check if only one of them is 1 - whatever is 1 then facet_wrap using the other
+        else if (length(input$country) == 1 || length(input$marathon2) == 1) {
+          if (length(input$country) == 1) {
+            # Facet_wrap by race
+            filtered_data <- marathon_data |>
+              filter(country == input$country, marathon %in% input$marathon2)
+
+            output$dot_plot <- renderPlot({
+              ggplot(filtered_data, aes(x = year, y = time)) +
+                geom_point() +
+                labs(title = paste("Winners from", input$country, "in Selected Races"),
+                     x = "Year",
+                     y = "Finish Time") +
+                theme_minimal() +
+                facet_wrap(~marathon)
+            })
+          }
+        
+          else {
+            # Facet_wrap by country
+            filtered_data <- marathon_data |>
+              filter(country %in% input$country, marathon == input$marathon2)
+
+            output$dot_plot <- renderPlot({
+              ggplot(filtered_data, aes(x = year, y = time)) +
+                geom_point() +
+                labs(title = paste("Winners from Selected Countries in", input$marathon2),
+                     x = "Year",
+                     y = "Finish Time") +
+                theme_minimal() +
+                facet_wrap(~country)
+            })
+          }
+        
+}
+      # Check if both are great than one -- ask which one the user wants to facet wrap with
+        else if (length(input$country) > 1 && length(input$marathon2) > 1) {
+          showModal(modalDialog(
+            title = "Facet wrap selection",
+            actionButton("facet_by_country", "Facet by Country"),
+            actionButton("facet_by_race", "Facet by Race")
+          ))
+
+          observeEvent(input$facet_by_country, {
+            removeModal()
+            # Facet_wrap by country was selected
+            filtered_data <- marathon_data |>
+              filter(country %in% input$country, marathon %in% input$marathon2)
+
+            output$dot_plot <- renderPlot({
+              ggplot(filtered_data, aes(x = year, y = time)) +
+                geom_point() +
+                labs(title = paste("Winners from Selected Countries and Races"),
+                     x = "Year",
+                     y = "Finish Time") +
+                theme_minimal() +
+                facet_wrap(~country)
+            })
+          })
+
+          observeEvent(input$facet_by_race, {
+            removeModal()
+            # Facet_wrap by race was selected
+            filtered_data <- marathon_data |>
+              filter(country %in% input$country, marathon %in% input$marathon2)
+
+            output$dot_plot <- renderPlot({
+              ggplot(filtered_data, aes(x = year, y = time)) +
+                geom_point() +
+                labs(title = paste("Winners from Selected Countries and Races"),
+                     x = "Year",
+                     y = "Finish Time") +
+                theme_minimal() +
+                facet_wrap(~marathon)
+            })
+          })
+        }
+      }
+
+    #              
+      # Check if country, race, and location are inputted
+      if (!("NONE" %in% input$country) && !("NONE" %in% input$marathon2) && !("NONE" %in% input$gender)) {
+      # Ask what the user wants to facet_wrap with
+        # Ask the user what they want to facet_wrap with
+        showModal(modalDialog(
+          title = "Facet wrap selection",
+          selectInput("facet_selection", "Facet by:", choices = c("Country", "Race")),
+          footer = actionButton("facet_submit", "Submit")
+        ))
+
+        observeEvent(input$facet_submit, {
+          removeModal()
+          if (input$facet_selection == "Country") {
+            # Facet by country
+            filtered_data <- marathon_data %>%
+              filter(country == input$country, marathon == input$marathon2, gender == input$gender)
+
+            output$dot_plot <- renderPlot({
+              ggplot(filtered_data, aes(x = year, y = time, color = marathon)) +
+                geom_point() +
+                labs(title = paste("Winners from", input$country, "in", input$marathon2, "by", input$gender),
+                     x = "Year",
+                     y = "Finish Time",
+                     color = "Race Location") +
+                theme_minimal() +
+                facet_wrap(~country)
+            })
+          }
+
+          else if (input$facet_selection == "Race") {
+            # Facet by race
+            filtered_data <- marathon_data %>%
+              filter(country == input$country, marathon == input$marathon2, gender == input$gender)
+
+            output$dot_plot <- renderPlot({
+              ggplot(filtered_data, aes(x = year, y = time, color = country)) +
+                geom_point() +
+                labs(title = paste("Winners from", input$country, "in", input$marathon2, "by", input$gender),
+                     x = "Year",
+                     y = "Finish Time",
+                     color = "Country") +
+                theme_minimal() +
+                facet_wrap(~marathon)
+            })
+          }
+        })
+      }
+
 })
 }
 
