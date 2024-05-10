@@ -216,7 +216,7 @@ server <- function(input, output) {
    
    if (input$gender == "NONE") {           
       # Check if only country is inputted 
-      if (!("NONE"%in% input$country) && input$marathon2 == "NONE") {
+      if (!("NONE"%in% input$country) && "NONE" %in% input$marathon2) {
         
        # Filter data based on the country that was selected
          filtered_data <- marathon_data |>
@@ -242,7 +242,7 @@ server <- function(input, output) {
       
                   
        # Check if only race location is inputted
-       if (!("NONE" %in% input$marathon2) && input$country == "NONE") {
+       if (!("NONE" %in% input$marathon2) && "NONE" %in% input$country) {
          
          # Filter dataset based on selected race location
          filtered_data <- marathon_data |>
@@ -267,7 +267,7 @@ server <- function(input, output) {
        }
    }
        # Check if only gender was inputted 
-       if (!("NONE" %in% input$gender) && input$country == "NONE" && input$marathon2 == "NONE") {
+       if (!("NONE" %in% input$gender) && "NONE" %in% input$country && "NONE" %in% input$marathon2) {
          
          # Filter dataset based on selected gender
          filtered_data <- marathon_data |>
@@ -291,7 +291,7 @@ server <- function(input, output) {
        }
                 
        # Check if only country and gender is inputted 
-       if (!("NONE" %in% input$gender) && !("NONE" %in% input$country) && input$marathon2 == "NONE") {
+       if (!("NONE" %in% input$gender) && !("NONE" %in% input$country) && "NONE" %in% input$marathon2) {
       
          # Filter dataset based on selected country and gender
          filtered_data <- marathon_data %>%
@@ -313,7 +313,7 @@ server <- function(input, output) {
       
                   
       # Check if only gender and race are inputted
-      if (!("NONE" %in% input$gender) && input$country == "NONE" && !("NONE" %in% input$marathon2)) {
+      if (!("NONE" %in% input$gender) && "NONE" %in% input$country && !("NONE" %in% input$marathon2)) {
 
           # Filter dataset based on user input of gender and race
           filtered_data <- marathon_data |>
